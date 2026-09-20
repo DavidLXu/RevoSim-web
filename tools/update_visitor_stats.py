@@ -49,6 +49,18 @@ def fetch_countries(request_page):
     raise ValueError('Unexpected number of country pages')
 
 
+def project_path_ids(payload):
+    if not isinstance(payload, dict) or not isinstance(payload.get('paths'), list) or type(payload.get('more')) is not bool:
+        raise ValueError('Invalid GoatCounter paths response')
+    selected = []
+    for row in payload['paths']:
+        if type(row.get('id')) is not int or row['id'] <= 0 or not isinstance(row.get('path'), str):
+            raise ValueError('Invalid GoatCounter path')
+        if not row.get('event') and row['path'].rstrip('/').casefold() == PATH.rstrip('/').casefold():
+            selected.append(row['id'])
+    return selected
+
+
 def aggregate(countries, mapping):
     totals = dict.fromkeys(CONTINENTS, 0)
     for country, count in countries.items():
@@ -64,10 +76,9 @@ def main():
     now = datetime.now(timezone.utc)
     end = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)).isoformat()
 
-    def request_page(offset):
-        query = urlencode({'start': START, 'end': end, 'include_paths': PATH,
-                           'path_by_name': 'true', 'limit': 100, 'offset': offset})
-        request = Request(f'{SITE}/api/v0/stats/locations?{query}', headers={
+    def api(endpoint, parameters):
+        query = urlencode(parameters)
+        request = Request(f'{SITE}/api/v0/{endpoint}?{query}', headers={
             'Authorization': f'Bearer {token}', 'Content-Type': 'application/json',
             'User-Agent': 'RevoSim-Public-Statistics/2.0'})
         try:
@@ -77,7 +88,27 @@ def main():
             detail = error.read().decode('utf-8', errors='replace')[:1000]
             raise RuntimeError(f'GoatCounter HTTP {error.code}: {detail}') from None
 
-    countries = fetch_countries(request_page)
+    # Resolve IDs instead of relying on by-name matching: GoatCounter strips
+    # trailing slashes when recording paths, and stores paths case-insensitively.
+    ids, after = [], 0
+    for _ in range(10):
+        page = api('paths', {'limit': 200, 'after': after})
+        ids.extend(project_path_ids(page))
+        if not page['more']:
+            break
+        next_after = max((row['id'] for row in page['paths']), default=after)
+        if next_after <= after:
+            raise ValueError('Invalid path pagination')
+        after = next_after
+    else:
+        raise ValueError('Too many path pages')
+    countries = {}
+    for path_id in ids:
+        batch = fetch_countries(lambda offset: api('stats/locations', {
+            'start': START, 'end': end, 'include_paths': path_id,
+            'limit': 100, 'offset': offset}))
+        for code, count in batch.items():
+            countries[code] = countries.get(code, 0) + count
     mapping = json.loads((ROOT/'tools/country-continents.json').read_text())['countries']
     known = sum(1 for code, count in countries.items() if count > 0 and code in mapping)
     payload = {'provider': 'GoatCounter', 'site': SITE, 'path': PATH,
