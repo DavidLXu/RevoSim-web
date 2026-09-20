@@ -1,0 +1,64 @@
+name: Publish site and refresh visitor statistics
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify statistics parser
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
+      - name: Refresh public country and continent totals
+        id: statistics
+        continue-on-error: true
+        run: python3 tools/update_visitor_stats.py
+      - name: Preserve last successful snapshot when provider is unavailable
+        if: steps.statistics.outcome == 'failure'
+        run: |
+          echo '::warning::Visitor statistics could not refresh; publishing the last successful snapshot.'
+          test -s assets/visitor-stats.json
+      - name: Save successful snapshot
+        if: steps.statistics.outcome == 'success'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/visitor-stats.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update public visitor statistics'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Stage static website
+        run: |
+          mkdir _site
+          cp index.html styles.css script.js visitors.css visitors.js .nojekyll _site/
+          cp -R assets _site/assets
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
