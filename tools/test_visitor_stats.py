@@ -1,29 +1,34 @@
 import unittest
-from update_visitor_stats import parse_page, aggregate
-
-
-def row(code, count):
-    return f'<a href=/factbook/{code}/E6wN><u>Country</u></a></font></td><td width=1%><font face=arial size=2>{count}</font></td>'
+from update_visitor_stats import parse_page, fetch_countries, aggregate
 
 
 class VisitorStatsTests(unittest.TestCase):
-    def test_country_totals_ignore_region_rows(self):
-        html = 'Countries 1 - 2 of 2.' + row('us', '1,024') + '<tr><td>California</td><td>400</td></tr>' + row('jp', '9')
-        self.assertEqual(parse_page(html), ({'US': 1024, 'JP': 9}, 1, 2, 2))
+    def test_real_empty_result(self):
+        self.assertEqual(parse_page({'stats': [], 'more': False}), ({}, False))
 
-    def test_incomplete_and_duplicate_rows_are_rejected(self):
-        for html in ['Countries 1 - 2 of 2.'+row('us','5'),
-                     'Countries 1 - 2 of 2.'+row('us','5')+row('us','8'),
-                     '<html>Temporarily unavailable</html>']:
+    def test_malformed_result_is_not_zero_traffic(self):
+        for payload in [{}, {'error': 'unauthorized'}, {'stats': [], 'more': True},
+                        {'stats': [{'id':'JP','count':-1}], 'more':False},
+                        {'stats': [{'id':'JP','count':True}], 'more':False},
+                        {'stats': [{'id':'JP','count':1}]*2, 'more':False}]:
             with self.assertRaises(ValueError):
-                parse_page(html)
+                parse_page(payload)
 
-    def test_later_page_range(self):
-        self.assertEqual(parse_page('Countries 51 - 51 of 51.'+row('au','7'))[1:], (51, 51, 51))
+    def test_pagination(self):
+        offsets = []
+        def page(offset):
+            offsets.append(offset)
+            return {'stats': [{'id': 'JP' if offset == 0 else 'US', 'count': 3}], 'more': offset == 0}
+        self.assertEqual(fetch_countries(page), {'JP':3, 'US':3})
+        self.assertEqual(offsets, [0, 1])
+
+    def test_repeated_page_rejected(self):
+        with self.assertRaises(ValueError):
+            fetch_countries(lambda _: {'stats':[{'id':'JP','count':1}], 'more':True})
 
     def test_unknowns_preserve_total(self):
         result = aggregate({'US':5,'JP':3,'ZZ':2}, {'US':'NA','JP':'AS'})
-        self.assertEqual((result['NA'],result['AS'],result['UN']), (5,3,2))
+        self.assertEqual((result['NA'], result['AS'], result['UN']), (5,3,2))
         self.assertEqual(sum(result.values()),10)
         self.assertEqual(result['AN'],0)
 

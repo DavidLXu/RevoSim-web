@@ -23,6 +23,8 @@ jobs:
       - name: Refresh public country and continent totals
         id: statistics
         continue-on-error: true
+        env:
+          GOATCOUNTER_API_TOKEN: ${{ secrets.GOATCOUNTER_API_TOKEN }}
         run: python3 tools/update_visitor_stats.py
       - name: Preserve last successful snapshot when provider is unavailable
         if: steps.statistics.outcome == 'failure'
@@ -43,7 +45,7 @@ jobs:
       - name: Stage static website
         run: |
           mkdir _site
-          cp index.html styles.css script.js visitors.css visitors.js .nojekyll _site/
+          cp index.html styles.css script.js analytics.js visitors.css visitors.js .nojekyll _site/
           cp -R assets _site/assets
       - uses: actions/upload-pages-artifact@v4
         with:

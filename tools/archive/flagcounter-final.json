@@ -1,0 +1,23 @@
+{
+  "continents": {
+    "AF": 0,
+    "AN": 0,
+    "AS": 1,
+    "EU": 0,
+    "NA": 0,
+    "OC": 0,
+    "SA": 0,
+    "UN": 0
+  },
+  "counter_id": "E6wN",
+  "countries": {
+    "JP": 1
+  },
+  "countries_count": 1,
+  "metric": "Recorded visits; repeat visitors may count again after 24 hours",
+  "provider": "Flag Counter",
+  "started_at": "2026-09-20T18:47:44+00:00",
+  "statistics_url": "https://info.flagcounter.com/E6wN",
+  "total_visits": 1,
+  "updated_at": "2026-09-20T18:50:00+00:00"
+}

@@ -1,76 +1,95 @@
-"""Aggregate this site's public Flag Counter country totals; never load its tracking image."""
-from datetime import datetime, timezone
+"""Publish aggregate GoatCounter location counts; credentials stay in Actions secrets."""
+from datetime import datetime, timezone, timedelta
 import json
+import os
 from pathlib import Path
 import re
+from urllib.error import HTTPError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-COUNTER = 'E6wN'
-HOST = 'https://s01.flagcounter.com'
-CONTINENTS = {'AF': 'Africa', 'AS': 'Asia', 'EU': 'Europe', 'NA': 'North America',
-              'SA': 'South America', 'OC': 'Oceania', 'AN': 'Antarctica', 'UN': 'Unknown'}
+SITE = 'https://davidlxu.goatcounter.com'
+START = '2026-09-20T00:00:00Z'
+PATH = '/RevoSim-web/'
+CONTINENTS = ('AF', 'AS', 'EU', 'NA', 'SA', 'OC', 'AN', 'UN')
 
 
-def parse_page(html):
-    coverage = re.search(r'Countries\s+(\d+)\s*-\s*(\d+)\s+of\s+(\d+)\.', html)
-    if not coverage:
-        raise ValueError('Country table missing; keep the last successful snapshot')
-    first, last, total = map(int, coverage.groups())
-    rows = re.findall(
-        rf'href=[\'\"]?/factbook/([a-z0-9]{{2}})/{COUNTER}\b[^>]*>.*?</a>\s*</font>\s*</td>'
-        r'\s*<td\b[^>]*>\s*<font\b[^>]*>\s*([\d,]+)\s*</font>',
-        html, re.IGNORECASE | re.DOTALL)
-    countries = {code.upper(): int(count.replace(',', '')) for code, count in rows}
-    if len(countries) != last-first+1:
-        raise ValueError('Incomplete or duplicate country rows')
-    return countries, first, last, total
-
-
-def fetch_countries():
+def parse_page(payload):
+    if not isinstance(payload, dict) or type(payload.get('more')) is not bool or not isinstance(payload.get('stats'), list):
+        raise ValueError('Invalid GoatCounter location response')
     countries = {}
-    previous_last = 0
-    for page in range(1, 9):
-        url = f'{HOST}/countries/{COUNTER}/' + (str(page) if page > 1 else '')
-        request = Request(url, headers={'User-Agent': 'RevoSim-Visitor-Summary/1.0 (github.com/DavidLXu/RevoSim-web)'})
-        with urlopen(request, timeout=30) as response:
-            html = response.read().decode('utf-8')
-        batch, first, last, total = parse_page(html)
-        if first != previous_last+1 or countries.keys() & batch.keys():
+    for row in payload['stats']:
+        code, count = row.get('id'), row.get('count')
+        if not isinstance(code, str) or type(count) is not int or count < 0:
+            raise ValueError('Invalid location count')
+        code = code.upper()
+        # GoatCounter uses an empty/unknown label for unlocated visits.
+        if code in ('', 'UNKNOWN', '(UNKNOWN)'):
+            code = 'ZZ'
+        if not re.fullmatch(r'[A-Z]{2}', code) or code in countries:
+            raise ValueError('Unexpected or duplicate country code')
+        countries[code] = count
+    if payload['more'] and not countries:
+        raise ValueError('Empty non-final page')
+    return countries, payload['more']
+
+
+def fetch_countries(request_page):
+    countries = {}
+    offset = 0
+    for _ in range(5):
+        batch, more = parse_page(request_page(offset))
+        if countries.keys() & batch.keys():
             raise ValueError('Country pagination changed during fetch')
         countries.update(batch)
-        previous_last = last
-        if last == total:
+        if not more:
             return countries
+        offset += len(batch)
     raise ValueError('Unexpected number of country pages')
 
 
 def aggregate(countries, mapping):
-    totals = {code: 0 for code in CONTINENTS}
+    totals = dict.fromkeys(CONTINENTS, 0)
     for country, count in countries.items():
         code = mapping.get(country, 'UN')
         totals[code if code in totals else 'UN'] += count
-    assert sum(totals.values()) == sum(countries.values())
     return totals
 
 
 def main():
-    countries = fetch_countries()
+    token = os.environ.get('GOATCOUNTER_API_TOKEN', '').strip()
+    if not token:
+        raise RuntimeError('Configure the GOATCOUNTER_API_TOKEN Actions secret')
+    now = datetime.now(timezone.utc)
+    end = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)).isoformat()
+
+    def request_page(offset):
+        query = urlencode({'start': START, 'end': end, 'include_paths': PATH,
+                           'path_by_name': 'true', 'limit': 100, 'offset': offset})
+        request = Request(f'{SITE}/api/v0/stats/locations?{query}', headers={
+            'Authorization': f'Bearer {token}', 'Content-Type': 'application/json',
+            'User-Agent': 'RevoSim-Public-Statistics/2.0'})
+        try:
+            with urlopen(request, timeout=30) as response:
+                return json.load(response)
+        except HTTPError as error:
+            detail = error.read().decode('utf-8', errors='replace')[:1000]
+            raise RuntimeError(f'GoatCounter HTTP {error.code}: {detail}') from None
+
+    countries = fetch_countries(request_page)
     mapping = json.loads((ROOT/'tools/country-continents.json').read_text())['countries']
-    output = ROOT/'assets/visitor-stats.json'
-    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    previous = json.loads(output.read_text()) if output.exists() else {}
-    total = sum(countries.values())
-    if total < previous.get('total_visits', 0):
-        raise ValueError('Counter decreased or reset; keep previous snapshot for review')
-    payload = {'provider': 'Flag Counter', 'counter_id': COUNTER,
-               'statistics_url': f'https://info.flagcounter.com/{COUNTER}',
-               'started_at': previous.get('started_at', now), 'updated_at': now,
-               'metric': 'Recorded visits; repeat visitors may count again after 24 hours',
-               'total_visits': total, 'countries_count': len(countries),
+    known = sum(1 for code, count in countries.items() if count > 0 and code in mapping)
+    payload = {'provider': 'GoatCounter', 'site': SITE, 'path': PATH,
+               'started_at': START, 'updated_at': now.isoformat(timespec='seconds'),
+               'metric': 'GoatCounter location visits; not all-time unique people',
+               'total_visits': sum(countries.values()), 'countries_count': known,
                'continents': aggregate(countries, mapping), 'countries': countries}
-    output.write_text(json.dumps(payload, indent=2, sort_keys=True)+'\n')
-    print(f'Updated {total} recorded visits across {len(countries)} countries.')
+    output = ROOT/'assets/visitor-stats.json'
+    temporary = output.with_suffix('.tmp')
+    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True)+'\n')
+    temporary.replace(output)
+    print(f"Updated {payload['total_visits']} visits across {known} countries and territories.")
 
 
 if __name__ == '__main__':
