@@ -1,31 +1,109 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="RevoSim is a scalable multimodal whole-hand tactile simulator for the BrainCo Revo3 dexterous hand."
-    />
-    <meta property="og:title" content="RevoSim is coming soon" />
-    <meta
-      property="og:description"
-      content="Scalable simulation for visuotactile fingertips and distributed piezoresistive sensing."
-    />
-    <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#f7f7f5" />
-    <title>RevoSim is coming soon</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main>
-      <h1>RevoSim is coming soon.</h1>
-      <p>
-        RevoSim is a scalable multimodal tactile simulation framework for the
-        BrainCo Revo3 dexterous hand. It jointly models vision-based tactile
-        fingertips and distributed piezoresistive arrays, enabling large-scale
-        robot learning with synchronized whole-hand tactile observations.
-      </p>
-    </main>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RevoSim: scalable multimodal tactile simulation for the BrainCo Revo3 hand, with visuotactile fingertips, whole-hand pressure, and LeRobot data collection.">
+  <meta name="theme-color" content="#10191e">
+  <meta property="og:title" content="RevoSim — Scalable Multimodal Tactile Simulation">
+  <meta property="og:description" content="Visuotactile fingertips and whole-hand piezoresistive sensing in one simulation framework.">
+  <meta property="og:type" content="website">
+  <title>RevoSim · Scalable Multimodal Tactile Simulation</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#modalities">Skip to content</a>
+  <header class="hero" id="top">
+    <div class="hero-media" aria-hidden="true">
+      <video id="hero-video" muted loop playsinline preload="none" poster="assets/hang-cup-revosim.jpg" data-hero-src="assets/hero.mp4"></video>
+    </div>
+    <div class="hero-shade"></div>
+    <nav class="navigation wrap" aria-label="Main navigation">
+      <a class="wordmark" href="#top">RevoSim<span>/</span></a>
+      <div class="nav-links"><a href="#modalities">Modalities</a><a href="#method">Method</a><a href="#scalability">Scalability</a><a class="nav-demo" href="#demos">Demos</a></div>
+    </nav>
+    <div class="hero-copy wrap">
+      <p class="eyebrow">WHOLE-HAND TACTILE SIMULATION</p>
+      <h1>RevoSim</h1>
+      <p class="hero-subtitle">Scalable Multimodal Tactile Simulation<br class="desktop-break"> for Dexterous Manipulation</p>
+      <p class="authors">Ke Zhang<sup>1,2*</sup> &nbsp; Lixin Xu<sup>1,2*</sup> &nbsp; Ziyi Wang<sup>3*</sup><br>Jie Tan<sup>2</sup> &nbsp; Chuanyu Li<sup>2</sup> &nbsp; Renjing Xu<sup>1†</sup></p>
+      <p class="affiliations"><span><sup>1</sup> HKUST(GZ)</span><span><sup>2</sup> BrainCo</span><span><sup>3</sup> Georgia Tech</span></p>
+      <p class="author-note">* Equal contribution &nbsp; † Corresponding author</p>
+      <div class="hero-actions"><span class="button button-light button-soon" role="link" aria-disabled="true">Read the paper (coming soon)</span><a class="button button-glass" href="#demos">Watch demos <span aria-hidden="true">↓</span></a></div>
+    </div>
+    <div class="hero-bottom wrap"><a href="#modalities" class="explore">Explore the senses <span aria-hidden="true">↓</span></a><button id="motion-toggle" type="button" hidden>Pause background</button><span class="hero-label">BRAINCO REVO3 · ISAAC LAB</span></div>
+  </header>
+
+  <main>
+    <section class="section modalities" id="modalities" aria-labelledby="modalities-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">01 / TACTILE MODALITIES</p><h2 id="modalities-title">Different views<br>of the same contact.</h2></div><p>RevoSim brings two sensor families into one simulator: visuotactile sensing at the five fingertips, and piezoresistive sensing across the palm and finger pads. They capture different aspects of contact.</p></div>
+        <div class="contact-context"><span class="sample-label">ONE RECORDED CONTACT EXAMPLE</span><p>All five examples share the same simulation frame from RevoBench, Cup grasp task · right ring fingertip · <strong>t = 53.183 s</strong></p></div>
+        <div class="modality-gallery">
+          <article class="modality-card">
+            <div class="modality-visual rgb-visual"><img src="assets/modalities/rgb.png" width="320" height="240" alt="Rendered RGB tactile image of the right ring fingertip during cup contact" loading="lazy"></div>
+            <div class="modality-copy"><p class="modality-kicker">01 / OPTICAL APPEARANCE</p><h3>RGB</h3><p>The tactile camera’s view of contact, rendered from indentation using GPU-Taxim and a real no-contact background.</p><p class="modality-shape">240 × 320 · 3 color channels per fingertip</p></div>
+          </article>
+          <article class="modality-card">
+            <div class="modality-visual"><img src="assets/modalities/depth.svg" width="540" height="410" alt="Indentation heatmap with a 0 to 2 millimeter color scale, showing the same cup contact" loading="lazy"></div>
+            <div class="modality-copy"><p class="modality-kicker">02 / CONTACT GEOMETRY</p><h3>Depth</h3><p>How far the fingertip surface is indented, and where. The heatmap displays a metric depth field; the recorded values are in meters.</p><p class="modality-shape">240 × 320 · one depth value per pixel</p></div>
+          </article>
+          <article class="modality-card">
+            <div class="modality-visual compact-visual"><img src="assets/modalities/marker.svg" width="540" height="410" alt="Calibrated marker locations with camera-plane displacement arrows enlarged threefold" loading="lazy"></div>
+            <div class="modality-copy"><p class="modality-kicker">03 / SURFACE DEFORMATION</p><h3>Marker</h3><p>Local 3D displacement at calibrated surface markers. The arrows show the camera-plane projection, enlarged threefold for visibility.</p><p class="modality-shape">100 × 3 · fixed marker slots with validity masks</p></div>
+          </article>
+          <article class="modality-card modality-wide">
+            <div class="modality-visual"><img src="assets/modalities/wrench.svg" width="800" height="440" alt="Six measured contact-wrench components for the same fingertip: three forces in newtons and three torques in newton-meters" loading="lazy"></div>
+            <div class="modality-copy"><p class="modality-kicker">04 / RESULTANT CONTACT LOAD</p><h3>6D force &amp; torque</h3><p>Three forces and three torques in the fingertip’s local frame. RevoBench computes this contact wrench from normal and friction contact records, with moments about the pad origin.</p><p class="modality-shape">Fx, Fy, Fz [N] · Tx, Ty, Tz [N·m]</p></div>
+          </article>
+          <article class="modality-card modality-wide">
+            <div class="modality-visual compact-visual"><img src="assets/modalities/pressure.svg" width="800" height="440" alt="Right-hand pressure responses on calibrated palm and finger-pad taxels; gray taxels are unloaded and teal surfaces are optical pads" loading="lazy"></div>
+            <div class="modality-copy"><p class="modality-kicker">05 / DISTRIBUTED HAND CONTACT</p><h3>Piezoresistive pressure</h3><p>Scalar responses over the palm and finger pads. These taxels cover different regions from the optical fingertips, revealing contact across the hand.</p><p class="modality-shape">285 taxels · 11 regions per hand</p></div>
+          </article>
+        </div>
+        <div class="modality-reading"><div><h3>Fingertip detail.<br>Whole-hand coverage.</h3><p>RGB, depth, and markers describe local fingertip contact in different forms. The 6D wrench summarizes the resultant load; distributed pressure preserves where the hand makes contact.</p></div><div class="modality-notes"><p><strong>Reading the examples.</strong> Pressure is a nonnegative, unitless sensor response. The hand is shown in a fixed reference pose; finger taxel arrays are aligned and arranged within the pads for readability.</p><p>RGB and marker displacement are separate outputs; the plotted vectors do not warp the RGB image. The 6D example is a simulator-derived contact wrench.</p></div></div>
+      </div>
+    </section>
+
+    <section class="section method" id="method" aria-labelledby="method-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">02 / THE FRAMEWORK</p><h2 id="method-title">From contact geometry<br>to synchronized touch.</h2></div><p>RevoSim models the BrainCo Revo3 hand in Isaac Lab. Geometry-aware taxel responses and adaptive fingertip sampling produce aligned tactile observations for simulation-based robot learning.</p></div>
+        <div class="method-steps">
+          <article><span class="step-label">01 / PRESSURE</span><h3>Follow the hand’s surface.</h3><p>Object penetration drives each taxel’s calibrated response. Diffusion follows the curved sensing surface, accounts for surface normals, and preserves the total response.</p></article>
+          <article><span class="step-label">02 / DEPTH</span><h3>Spend rays where contact occurs.</h3><p>A coarse 32 × 24 map localizes contact. A 25 × 40 sampling lattice tracks that region, then reconstructs a dense 240 × 320 fingertip observation.</p></article>
+          <article><span class="step-label">03 / APPEARANCE & MOTION</span><h3>Render and deform together.</h3><p>Depth drives the RGB renderer and marker dilation. A temporal shear model contributes tangential deformation at 100 calibrated marker locations per fingertip.</p></article>
+        </div>
+        <figure class="wide-figure"><img src="assets/grasping.webp" alt="Four views of simulated object grasping, with whole-palm pressure and five fingertip depth observations below" width="2000" height="515" loading="lazy"><figcaption>Whole-hand pressure and five fingertip depth observations during simulated object grasping.</figcaption></figure>
+        <div class="abstract-line"><h3>Learning with touch</h3><p>The paper studies in-hand manipulation and grasping in simulation. These experiments provide a foundation for future sim-to-real transfer.</p></div>
+      </div>
+    </section>
+
+    <section class="section scalability" id="scalability" aria-labelledby="scale-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">03 / SCALABILITY</p><h2 id="scale-title">Tactile simulation,<br>in parallel.</h2></div><p>Measurements on one NVIDIA RTX 5090. Memory use depends on the selected observations; the largest reported configuration excludes RGB.</p></div>
+        <div class="stats">
+          <article><p class="stat-number">4,096</p><h3>Parallel environments</h3><p>Depth-conditioned marker displacement at 31.36 GiB, with RGB excluded.</p></article>
+          <article><p class="stat-number">9.2<span> GiB</span></p><h3>Depth at 1,024 environments</h3><p>Compared with TacMap’s 30.6 GiB in the paper’s depth-only benchmark.</p></article>
+          <article><p class="stat-number">~70<span>%</span></p><h3>Lower depth memory use</h3><p>At 1,024 environments in that comparison. These figures measure memory capacity.</p></article>
+        </div>
+        <p class="scale-note">Adding RGB increases memory use. The cumulative setting with depth, pressure, markers, and RGB reaches capacity at 1,024 environments in the reported benchmark.</p>
+      </div>
+    </section>
+
+    <section class="section demos" id="demos" aria-labelledby="demos-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">04 / DATA COLLECTION</p><h2 id="demos-title">Manipulation in motion.<br>Ready for LeRobot.</h2></div><p>RevoSim supports data collection in the LeRobot dataset format. The demonstrations below show manipulation together with camera views, whole-hand pressure, fingertip observations, and recorded trajectories.</p></div>
+        <article class="demo-feature"><div class="video-frame"><video controls muted playsinline preload="none" poster="assets/hang-cup-revosim.jpg" aria-label="Cup hanging demonstration with synchronized visual and tactile observations"><source src="assets/hang-cup-revosim.mp4" type="video/mp4">Your browser does not support embedded video. <a href="assets/hang-cup-revosim.mp4">Download the cup hanging video.</a></video></div><div class="demo-caption"><div><span class="step-label">DEMO 01</span><h3>Cup hanging</h3></div><p>Multi-view manipulation with fingertip sensing and whole-hand pressure.</p><a href="assets/hang-cup-revosim.mp4" download aria-label="Download cup hanging video">Download video <span aria-hidden="true">↓</span></a></div></article>
+        <div class="demo-grid">
+          <article><div class="video-frame"><video controls muted playsinline preload="none" poster="assets/hammer_lerobot.jpg" aria-label="Hammer manipulation demonstration recorded for LeRobot"><source src="assets/hammer_lerobot.mp4" type="video/mp4">Your browser does not support embedded video. <a href="assets/hammer_lerobot.mp4">Download the hammer video.</a></video></div><div class="demo-caption"><div><span class="step-label">DEMO 02 / LEROBOT</span><h3>Hammer manipulation</h3></div><a href="assets/hammer_lerobot.mp4" download aria-label="Download hammer manipulation video">Download <span aria-hidden="true">↓</span></a></div></article>
+          <article><div class="video-frame"><video controls muted playsinline preload="none" poster="assets/tray_lerobot.jpg" aria-label="Tray carrying demonstration recorded for LeRobot"><source src="assets/tray_lerobot.mp4" type="video/mp4">Your browser does not support embedded video. <a href="assets/tray_lerobot.mp4">Download the tray carrying video.</a></video></div><div class="demo-caption"><div><span class="step-label">DEMO 03 / LEROBOT</span><h3>Tray carrying</h3></div><a href="assets/tray_lerobot.mp4" download aria-label="Download tray carrying video">Download <span aria-hidden="true">↓</span></a></div></article>
+        </div>
+        <div class="results-note"><span class="eyebrow">FURTHER EVALUATION</span><h3>Qualitative results coming soon.</h3><p>Additional task comparisons and tactile evaluation results will be added as they become available.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer wrap"><a class="wordmark" href="#top">RevoSim<span>/</span></a><p>Scalable Multimodal Tactile Simulation for Dexterous Manipulation</p><a href="#top">Back to top ↑</a></footer>
+</body>
 </html>
