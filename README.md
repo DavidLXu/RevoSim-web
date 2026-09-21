@@ -21,3 +21,9 @@ The API token is stored only in the repository's GitHub Actions secret `GOATCOUN
 The Pages workflow refreshes totals hourly at minute 17 UTC, then publishes the static site. GitHub can delay scheduled jobs or disable them after prolonged repository inactivity; use Actions → Publish site and refresh visitor statistics → Run workflow to refresh manually. API errors preserve the previous snapshot and its original timestamp. A missing snapshot displays unavailable, never fabricated zero counts.
 
 Countries and territories are assigned to continents using [GeoNames countryInfo](https://download.geonames.org/export/dump/countryInfo.txt), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Unrecognized countries are retained in an Unknown bucket. Map outlines derive from [Natural Earth 1:110m countries](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson), public domain. Map shading applies each continent's total to its countries; it does not show individual visitor positions.
+
+## Tactile contact video
+
+The dynamic example in the modalities section uses only the right half of the supplied `触觉仿真1.mp4` recording (right hand). Its camera panel is arranged on the left and Depth, Marker, RGB and Pressure are arranged as a 2×2 grid on the right. A single MP4 preserves frame synchronization during playback and seeking. The recording retains all 152 frames at 12 fps (12.67 seconds), corresponding to the source's 10× slow motion. It is separate from the cup-grasp static example.
+
+`tools/prepare_tactile_demo.py SOURCE --parts OUTPUT_DIRECTORY` extracts five individual MP4 panels and generates `assets/tactile-contact-right.mp4` and its poster. It expects the original 1568×1376 source layout and requires FFmpeg. Panel crop coordinates are documented in the script; labels and readings are preserved from the source.
