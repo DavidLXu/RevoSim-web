@@ -38,3 +38,23 @@ document.querySelectorAll('.demos video').forEach((video) => {
   });
 });
 updateMotionLabel();
+
+const copyCitation = document.querySelector('#copy-citation');
+const bibtex = document.querySelector('#bibtex');
+const citationStatus = document.querySelector('#citation-status');
+if (copyCitation && bibtex && citationStatus) {
+  copyCitation.hidden = false;
+  copyCitation.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(bibtex.textContent);
+      citationStatus.textContent = 'BibTeX copied.';
+    } catch {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(bibtex);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      citationStatus.textContent = 'Citation selected. Press Ctrl+C or ⌘C to copy.';
+    }
+  });
+}
